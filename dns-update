@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# This Bash shell script implements a DDNS client. It is to be run regularly through CRON.
+# The script checks the public IP address and, if it has changed since the last time it was run,
+# updates a DNS record by calling 'nsupdate' with the proper parameters.
+# To update the DNS record a DNS key is needed together with proper permissions on the DNS server.
+# You also need to have 'nsupdate' installed.
+
+# Petros Papadopoulos 2019-07-30
+
+# --------------------------------------------------------
+# Parameters - change these according to your preferences
+#
+# A file in a writable location, which holds the current IP address. The file is updated by the script.
+ipfile="/tmp/ipaddress"
+# Log file
+logfile="/var/log/dns-update"
+# File containing the DNS Key (the key should be provided by the DNS server admin)
+dnskeyfile="/root/dns-update/ivisinfo.gr.key"
+# Temporary file to hold the nsupdate commands created by the script. Should be in a writable location.
+dnstmpfile="/tmp/nsupdate-commands"
+
+# no need to change anything below this line
+# --------------------------------------------------------
+
+# read previous IP address
+read -r previp < $ipfile
+
+# get current IP address
+currip=`dig +short myip.opendns.com @resolver1.opendns.com`
+
+# check if IP address has changed
+date=$(date '+%Y-%m-%d %H:%M:%S')
+if [ $currip == $previp ]
+then
+  # IP address has not changed - do nothing
+  echo "$date : Our IP address is still $currip. No action." >> $logfile
+else
+  # IP address has changed
+  echo "$date : Our IP address has CHANGED (current=$currip, previous=$previp). Updating DNS." >> $logfile
+  # create temporary nsupdate command file
+  echo "update delete ath.ivisinfo.gr. A" > $dnstmpfile
+  echo "update add ath.ivisinfo.gr. 3600 IN A $currip" >> $dnstmpfile
+  echo "" >> $dnstmpfile
+  # call nsupdate
+  /usr/bin/nsupdate -k $dnskeyfile -d $dnstmpfile >> $logfile
+  # remove tmp command file
+#  rm -f $dnstmpfile
+  update tmp file
+  echo $currip > $ipfile
+fi
+
+# end script
