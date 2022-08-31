@@ -24,6 +24,10 @@ dnstmpfile="/tmp/nsupdate-commands"
 # --------------------------------------------------------
 
 # read previous IP address
+if [ ! -f "$FILE" ]
+then
+  touch $ipfile
+fi
 read -r previp < $ipfile
 
 # get current IP address
